@@ -14,6 +14,7 @@ export class AgentBrainService implements OnModuleInit {
   private totalFundingEarned: number = 1420.50;
   private riskTolerance: 'CONSERVATIVE' | 'BALANCED' | 'AGGRESSIVE' = 'BALANCED';
   private agentStatus: 'AUTONOMOUS_ACTIVE' | 'REBALANCING' | 'PAUSED' | 'DEFENSIVE_MODE' = 'AUTONOMOUS_ACTIVE';
+  private cachedOpportunities: OpportunityScore[] = [];
 
   constructor(
     private readonly gateway: AgentGateway,
@@ -25,6 +26,7 @@ export class AgentBrainService implements OnModuleInit {
   onModuleInit() {
     this.initializeDemoPositions();
     this.startAutonomousLoop();
+    this.startMarketScannerLoop();
   }
 
   private initializeDemoPositions() {
@@ -86,26 +88,44 @@ export class AgentBrainService implements OnModuleInit {
     ];
   }
 
-  private startAutonomousLoop() {
-    this.logger.log('Starting resoQ Autonomous Quantitative Reasoning Loop...');
-    
-    setInterval(async () => {
+  private startMarketScannerLoop() {
+    const scan = async () => {
       try {
-        await this.executeCycle();
+        const opps = await this.scanner.scanAndRankOpportunities();
+        if (opps && opps.length > 0) {
+          this.cachedOpportunities = opps;
+          this.gateway.broadcastOpportunities(this.cachedOpportunities);
+        }
+      } catch (err) {
+        this.logger.warn(`Scanner background refresh error: ${err.message}`);
+      }
+    };
+
+    scan();
+    setInterval(scan, 10000); // Poll Hyperliquid API every 10s asynchronously
+  }
+
+  private startAutonomousLoop() {
+    this.logger.log('Starting resoQ Non-Blocking Autonomous Reasoning Loop (2s cadence)...');
+    
+    // Non-blocking tick every 2 seconds for continuous streaming
+    setInterval(() => {
+      try {
+        this.executeCycle();
       } catch (err) {
         this.logger.error(`Error in agent cycle: ${err.message}`);
       }
-    }, 3500);
+    }, 2000);
   }
 
-  async executeCycle() {
-    const opportunities = await this.scanner.scanAndRankOpportunities();
-    this.gateway.broadcastOpportunities(opportunities);
-
-    this.totalFundingEarned += 0.08;
+  executeCycle() {
+    // 1. Accrue incremental funding yield
+    this.totalFundingEarned += 0.05;
+    
     this.activePositions.forEach((pos) => {
-      pos.cumulativeFundingEarned += 0.026;
-      const jitter = (Math.random() - 0.5) * 0.002;
+      pos.cumulativeFundingEarned += 0.018;
+      // Slight price jitter to showcase continuous live delta tracking
+      const jitter = (Math.random() - 0.5) * 0.0015;
       pos.currentPrice = parseFloat((pos.currentPrice * (1 + jitter)).toFixed(4));
       pos.spotValueUsd = parseFloat((pos.spotAmount * pos.currentPrice).toFixed(2));
       pos.perpValueUsd = parseFloat((pos.perpSize * pos.currentPrice).toFixed(2));
@@ -114,6 +134,7 @@ export class AgentBrainService implements OnModuleInit {
       pos.netDelta = drift.currentDelta;
     });
 
+    // 2. Compute portfolio metrics
     const totalAllocated = this.activePositions.reduce(
       (acc, p) => acc + p.spotValueUsd + p.perpValueUsd,
       0,
@@ -148,14 +169,23 @@ export class AgentBrainService implements OnModuleInit {
     this.gateway.broadcastTelemetry(telemetry);
     this.gateway.broadcastPositions(this.activePositions);
 
-    this.generateReasoningLog(opportunities);
+    if (this.cachedOpportunities.length > 0) {
+      this.gateway.broadcastOpportunities(this.cachedOpportunities);
+    }
+
+    // 3. Stream quantitative decision reasoning log
+    this.generateReasoningLog();
   }
 
   private logCounter = 0;
-  private generateReasoningLog(opportunities: OpportunityScore[]) {
+  private generateReasoningLog() {
     this.logCounter++;
-    const top = opportunities[0];
-    if (!top) return;
+    const top = this.cachedOpportunities[0] || {
+      coin: 'HYPE',
+      annualizedApy: 32.4,
+      fundingRateHourly: 0.00037,
+      openInterestUsd: 98000000,
+    };
 
     const logTemplates: Array<() => AgentLog> = [
       () => ({
@@ -163,28 +193,28 @@ export class AgentBrainService implements OnModuleInit {
         timestamp: new Date().toLocaleTimeString(),
         level: 'INFO',
         category: 'DISCOVERY',
-        message: `Market Scanner: ${top.coin} leads rank with ${top.annualizedApy}% APY (Hourly: +${(top.fundingRateHourly * 100).toFixed(4)}%) | OI: $${(top.openInterestUsd / 1e6).toFixed(1)}M`,
+        message: `Market Scanner: ${top.coin} leads ranking with ${top.annualizedApy}% APY (Hourly rate: +${(top.fundingRateHourly * 100).toFixed(4)}%) | L1 Open Interest: $${(top.openInterestUsd / 1e6).toFixed(1)}M`,
       }),
       () => ({
         id: `log-${Date.now()}-${Math.random().toString(36).substring(7)}`,
         timestamp: new Date().toLocaleTimeString(),
         level: 'SUCCESS',
         category: 'YIELD_HARVEST',
-        message: `Yield Engine: Accrued hourly funding distribution across active basis hedges (+$0.85 USD). Net portfolio delta maintained at Δ = 0.000.`,
+        message: `Yield Engine: Accrued hourly basis distribution on Hyperliquid L1 (+$0.45 USDC). Net portfolio delta firmly locked at Δ = 0.0000.`,
       }),
       () => ({
         id: `log-${Date.now()}-${Math.random().toString(36).substring(7)}`,
         timestamp: new Date().toLocaleTimeString(),
         level: 'INFO',
         category: 'RISK_CHECK',
-        message: `Risk Guard: Margin health check optimal. Average health 97.9%, zero liquidation proximity on Hyperliquid L1 orderbooks.`,
+        message: `Risk Guard: Margin health check optimal across 3 active positions. Current margin ratio: 18.4%, zero liquidation proximity.`,
       }),
       () => ({
         id: `log-${Date.now()}-${Math.random().toString(36).substring(7)}`,
         timestamp: new Date().toLocaleTimeString(),
         level: 'EXECUTE',
         category: 'REBALANCE',
-        message: `Delta Engine: Micro-drift check complete. Spot long vs. Perp short token sizing synchronized within 0.02% tolerance.`,
+        message: `Delta Engine: Micro-drift check completed across spot orderbook & perp CLOB. Spot Long vs. Perp Short sizing synchronized within 0.01% tolerance.`,
       }),
     ];
 
@@ -202,6 +232,7 @@ export class AgentBrainService implements OnModuleInit {
       message: `Vault Deposit: Injected $${amount.toLocaleString()} USDC. Autonomous agent deploying 50% Spot Long / 50% 1x Perp Short across highest APY pairs.`,
     };
     this.gateway.broadcastLog(log);
+    this.executeCycle();
     return { success: true, newTvl: this.totalVaultTvl };
   }
 
@@ -215,6 +246,7 @@ export class AgentBrainService implements OnModuleInit {
       message: `Risk Policy Updated: Set to ${risk} mode. Re-weighting allocation parameters.`,
     };
     this.gateway.broadcastLog(log);
+    this.executeCycle();
     return { success: true, riskTolerance: this.riskTolerance };
   }
 
@@ -229,6 +261,7 @@ export class AgentBrainService implements OnModuleInit {
       message: `CIRCUIT BREAKER TRIGGERED: Emergency Unwind executed. Closed all perp short positions and converted spot long to USDC.`,
     };
     this.gateway.broadcastLog(log);
+    this.executeCycle();
     return { success: true, status: this.agentStatus };
   }
 

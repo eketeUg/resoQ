@@ -4,6 +4,11 @@ import "./globals.css";
 export const metadata: Metadata = {
   title: "resoQ — Autonomous Delta-Neutral Yield Agent on Hyperliquid",
   description: "Autonomous basis arbitrage, dynamic delta-neutral hedging, and automated risk management on Hyperliquid L1.",
+  icons: {
+    icon: "/icon.svg",
+    shortcut: "/favicon.svg",
+    apple: "/icon.svg",
+  },
 };
 
 export default function RootLayout({
@@ -13,7 +18,7 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en" className="dark">
-      <body className="bg-[#090b10] text-gray-100 antialiased">{children}</body>
+      <body className="bg-[#030712] text-slate-100 antialiased">{children}</body>
     </html>
   );
 }
