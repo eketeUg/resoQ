@@ -1,17 +1,18 @@
 # resoQ — Autonomous Delta-Neutral Yield & Risk Agent on Hyperliquid
 
 > **Crypto World's Fair Hackathon (Colosseum) Submission**  
-> *Category:* Autonomous AI Agents & DeFi Primitives on Hyperliquid L1
+> _Category:_ Autonomous AI Agents & DeFi Primitives on Hyperliquid L1
 
 ---
 
 ## 🌟 Overview
 
-**resoQ** is an autonomous quantitative yield, basis-arbitrage, and risk-managed hedging agent built directly on **Hyperliquid L1**. 
+**resoQ** is an autonomous quantitative yield, basis-arbitrage, and risk-managed hedging agent built directly on **Hyperliquid L1**.
 
 In high-throughput perpetual decentralized exchanges like Hyperliquid, annualized funding rates on popular assets frequently surge between **20% to 50%+ APY**. However, manual basis trading is capital-inefficient, error-prone, and vulnerable to funding inversions and basis drift.
 
 **resoQ solves this autonomously:**
+
 1. **Perpetual Opportunity Radar:** Scans live Hyperliquid orderbooks and funding rate streams, ranking markets by risk-adjusted APR, liquidity depth, and basis spread.
 2. **Autonomous Delta Engine ($\Delta = 0.00$):** Automatically allocates 50% Spot Long + 50% 1x Perp Short, eliminating directional exposure while capturing pure hourly funding distributions.
 3. **Adaptive Micro-Rebalancing:** Continuously calculates delta drift and executes micro-adjustments to keep net portfolio exposure neutral.
@@ -78,23 +79,27 @@ In high-throughput perpetual decentralized exchanges like Hyperliquid, annualize
 ## ⚡ Quick Start (Run Locally)
 
 ### 1. Start the NestJS Backend Agent
+
 ```bash
 cd backend
 npm install
 npm run start:dev
 ```
-*Backend runs on `http://localhost:8000` with WebSocket gateway streaming live telemetry.*
+
+_Backend runs on `http://localhost:8000` with WebSocket gateway streaming live telemetry._
 
 ### 2. Start the Next.js Frontend Dashboard
+
 ```bash
 cd frontend
 npm install
 npm run dev
 ```
-*Open `http://localhost:3000` in your browser.*
+
+_Open `http://localhost:3000` in your browser._
 
 ---
 
-## 🏆 Hackathon Tracks & Alignment
+<!-- ## 🏆 Hackathon Tracks & Alignment
 - **Hyperliquid Track:** Deep native integration with Hyperliquid perpetual orderbook mechanics, hourly funding rates, sub-account vaults, and basis trading.
-- **Colosseum Accelerator Target:** Built from day 1 as a scalable, non-custodial asset management protocol capable of scaling to tens of millions in institutional and retail TVL.
+- **Colosseum Accelerator Target:** Built from day 1 as a scalable, non-custodial asset management protocol capable of scaling to tens of millions in institutional and retail TVL. -->
