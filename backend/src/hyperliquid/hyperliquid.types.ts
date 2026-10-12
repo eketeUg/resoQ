@@ -7,14 +7,14 @@ export interface PerpMeta {
 
 export interface PerpMarketContext {
   coin: string;
-  fundingRate: number; // 1-hour funding rate (decimal)
-  annualizedApy: number; // APY in percentage e.g. 28.5%
-  openInterest: number; // in USD
+  fundingRate: number;
+  annualizedApy: number;
+  openInterest: number;
   oraclePx: number;
   markPx: number;
-  dayNtlVlm: number; // 24h volume
+  dayNtlVlm: number;
   prevDayPx: number;
-  change24h: number; // percentage
+  change24h: number;
 }
 
 export interface SpotAssetContext {
@@ -34,19 +34,20 @@ export interface PositionPair {
   currentPrice: number;
   currentFundingRate: number;
   annualizedApy: number;
-  netDelta: number; // should be ~0.00
+  netDelta: number;
   unrealizedPnl: number;
   cumulativeFundingEarned: number;
-  marginHealth: number; // percentage (100% = safe)
+  marginHealth: number;
   status: 'ACTIVE' | 'REBALANCING' | 'CLOSING' | 'UNWOUND';
   openedAt: string;
 }
 
 export interface AgentTelemetry {
+  depositedPrincipal: number;
+  totalFundingEarned: number;
   tvl: number;
   netApy: number;
   netDelta: number;
-  totalFundingEarned: number;
   marginRatio: number;
   activePairsCount: number;
   riskScore: 'LOW' | 'MEDIUM' | 'HIGH';

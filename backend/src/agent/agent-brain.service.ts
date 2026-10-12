@@ -10,8 +10,8 @@ export class AgentBrainService implements OnModuleInit {
   private readonly logger = new Logger(AgentBrainService.name);
   
   private activePositions: PositionPair[] = [];
-  private totalVaultTvl: number = 100000;
-  private totalFundingEarned: number = 1420.50;
+  private depositedPrincipal: number = 100000.00; // Base user deposited capital: $100k
+  private totalFundingEarned: number = 1420.50;  // Harvested funding yield
   private riskTolerance: 'CONSERVATIVE' | 'BALANCED' | 'AGGRESSIVE' = 'BALANCED';
   private agentStatus: 'AUTONOMOUS_ACTIVE' | 'REBALANCING' | 'PAUSED' | 'DEFENSIVE_MODE' = 'AUTONOMOUS_ACTIVE';
   private cachedOpportunities: OpportunityScore[] = [];
@@ -102,13 +102,12 @@ export class AgentBrainService implements OnModuleInit {
     };
 
     scan();
-    setInterval(scan, 10000); // Poll Hyperliquid API every 10s asynchronously
+    setInterval(scan, 10000);
   }
 
   private startAutonomousLoop() {
     this.logger.log('Starting resoQ Non-Blocking Autonomous Reasoning Loop (2s cadence)...');
     
-    // Non-blocking tick every 2 seconds for continuous streaming
     setInterval(() => {
       try {
         this.executeCycle();
@@ -124,7 +123,6 @@ export class AgentBrainService implements OnModuleInit {
     
     this.activePositions.forEach((pos) => {
       pos.cumulativeFundingEarned += 0.018;
-      // Slight price jitter to showcase continuous live delta tracking
       const jitter = (Math.random() - 0.5) * 0.0015;
       pos.currentPrice = parseFloat((pos.currentPrice * (1 + jitter)).toFixed(4));
       pos.spotValueUsd = parseFloat((pos.spotAmount * pos.currentPrice).toFixed(2));
@@ -154,11 +152,14 @@ export class AgentBrainService implements OnModuleInit {
       ).toFixed(4),
     );
 
+    const totalAccountValue = parseFloat((this.depositedPrincipal + this.totalFundingEarned).toFixed(2));
+
     const telemetry: AgentTelemetry = {
-      tvl: parseFloat((this.totalVaultTvl + this.totalFundingEarned).toFixed(2)),
+      depositedPrincipal: parseFloat(this.depositedPrincipal.toFixed(2)),
+      totalFundingEarned: parseFloat(this.totalFundingEarned.toFixed(2)),
+      tvl: totalAccountValue,
       netApy: parseFloat(weightedApy.toFixed(2)),
       netDelta: portfolioNetDelta,
-      totalFundingEarned: parseFloat(this.totalFundingEarned.toFixed(2)),
       marginRatio: 18.4,
       activePairsCount: this.activePositions.length,
       riskScore: 'LOW',
@@ -173,7 +174,6 @@ export class AgentBrainService implements OnModuleInit {
       this.gateway.broadcastOpportunities(this.cachedOpportunities);
     }
 
-    // 3. Stream quantitative decision reasoning log
     this.generateReasoningLog();
   }
 
@@ -223,17 +223,17 @@ export class AgentBrainService implements OnModuleInit {
   }
 
   depositFunds(amount: number) {
-    this.totalVaultTvl += amount;
+    this.depositedPrincipal += amount;
     const log: AgentLog = {
       id: `log-${Date.now()}`,
       timestamp: new Date().toLocaleTimeString(),
       level: 'SUCCESS',
       category: 'HEDGE_EXECUTION',
-      message: `Vault Deposit: Injected $${amount.toLocaleString()} USDC. Autonomous agent deploying 50% Spot Long / 50% 1x Perp Short across highest APY pairs.`,
+      message: `Vault Deposit: Injected $${amount.toLocaleString()} USDC. Deposited Principal updated to $${this.depositedPrincipal.toLocaleString()} USDC. Deploying 50% Spot Long / 50% 1x Perp Short.`,
     };
     this.gateway.broadcastLog(log);
     this.executeCycle();
-    return { success: true, newTvl: this.totalVaultTvl };
+    return { success: true, depositedPrincipal: this.depositedPrincipal, totalAccountValue: this.depositedPrincipal + this.totalFundingEarned };
   }
 
   setRiskTolerance(risk: 'CONSERVATIVE' | 'BALANCED' | 'AGGRESSIVE') {
@@ -267,8 +267,9 @@ export class AgentBrainService implements OnModuleInit {
 
   getStatus() {
     return {
-      tvl: this.totalVaultTvl + this.totalFundingEarned,
+      depositedPrincipal: this.depositedPrincipal,
       totalFundingEarned: this.totalFundingEarned,
+      totalAccountValue: this.depositedPrincipal + this.totalFundingEarned,
       positions: this.activePositions,
       riskTolerance: this.riskTolerance,
       status: this.agentStatus,

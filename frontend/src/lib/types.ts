@@ -18,10 +18,11 @@ export interface PositionPair {
 }
 
 export interface AgentTelemetry {
-  tvl: number;
+  depositedPrincipal: number;
+  totalFundingEarned: number;
+  tvl: number; // Principal + Accrued Funding
   netApy: number;
   netDelta: number;
-  totalFundingEarned: number;
   marginRatio: number;
   activePairsCount: number;
   riskScore: 'LOW' | 'MEDIUM' | 'HIGH';
